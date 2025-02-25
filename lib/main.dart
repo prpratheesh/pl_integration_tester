@@ -62,7 +62,7 @@ class AppState extends State<App> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return MaterialApp(
-      title: "Integration Tester",
+      title: "Integration Tester Pine Labs",
       theme: ThemeData(
         textTheme: GoogleFonts.latoTextTheme(textTheme).copyWith(
           bodyLarge: GoogleFonts.oswald(textStyle: textTheme.bodyLarge),
