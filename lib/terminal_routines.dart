@@ -171,6 +171,18 @@ class POSManager {
     }
   }
 
+  static Future<String?> performApiCall(String paymentRequest, int transactionType) async {
+    try {
+      final String? result = await _platform.invokeMethod('performApiCall', {
+        'paymentRequest': paymentRequest,
+        'transactionType': transactionType,
+      });
+      return result;
+    } on PlatformException catch (e) {
+      print("Failed to perform API call: '${e.message}'");
+      return null;
+    }
+  }
 }
 
 // Define the DeviceDetails class here as well

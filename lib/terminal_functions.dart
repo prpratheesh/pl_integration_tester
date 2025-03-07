@@ -63,6 +63,7 @@ class _State extends State<TerminalFunctions> with TickerProviderStateMixin{
   bool _isBillRefEnter = false;
   int TXN_TYPE = 6;
   int SCAN_TXN_TYPE = 1007;
+  String MER_ID = '1030';
 ////////////////////data elements////////////////////
   LogControl logger = LogControl();
   bool printerEnabled = false;
@@ -528,6 +529,7 @@ class _State extends State<TerminalFunctions> with TickerProviderStateMixin{
                         onChanged: (bool? value) {
                           setState(() {
                             _isChecked = value!;
+                            print(_isChecked);
                             if (_isChecked) {
                               _amountController.clear();
                               _billRefNoController.clear();
@@ -556,10 +558,10 @@ class _State extends State<TerminalFunctions> with TickerProviderStateMixin{
                   child: TextFormField(
                     enabled: _isChecked,
                     keyboardType: TextInputType.text,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'^[a-zA-Z0-9]*$')),
-                    ],
+                    // inputFormatters: [
+                    //   FilteringTextInputFormatter.allow(
+                    //       RegExp(r'^[a-zA-Z0-9]*$')),
+                    // ],
                     controller: _payloadController,
                     focusNode: _payloadFocusNode,
                     textAlign: TextAlign.center,
@@ -698,7 +700,7 @@ class _State extends State<TerminalFunctions> with TickerProviderStateMixin{
                       addStatusMessage('INITIATING SETTLEMENT TRANSACTION');
                       const dataElement =
                           '10000997001A363030312C2C2C2C2C2C2C2C2C2CFF';
-                      addStatusMessage(hexToAscii(dataElement!));
+                      addStatusMessage(hexToAscii(dataElement));
                       var datapayment =
                           await POSManager.doTransaction(dataElement, TXN_TYPE);
                       addStatusMessage(hexToAscii(datapayment!));
@@ -732,30 +734,40 @@ class _State extends State<TerminalFunctions> with TickerProviderStateMixin{
                       break;
                     case 'VALIDATION':
                       TR_TYPE = '7001';
-                      addStatusMessage('INITIATING VALIDATION TRANSACTION');
-                      String DATA_ASCII =
-                          '7001,1030,SALE,100,15489,1099,,,,,E748A37A-B0D0-4EAC-9DD4-9722E544D296,https://plcloudservicesuat.com/api/CloudBasedIntegration/V1/PerformTxnValidation';
-                      DATA = convertToHex(DATA_ASCII);
-                      String payloadLength = (decimalToHexWithLeadingZeros(
-                          DATA_ASCII.length, 4));
-                      DATA_LENGTH = payloadLength.toString().toUpperCase();
-                      final dataElement = (IDENTIFICATIN_NO +
-                          FUNCTION_CODE +
-                          DATA_LENGTH +
-                          DATA +
-                          EOT)
-                          .toUpperCase();
-                      var datapayment = await POSManager.doTransaction(
-                          dataElement, TXN_TYPE);
-                      addStatusMessage(hexToAscii(dataElement!));
-                      logger.logSuccess(datapayment.toString());
+                      if (checkTxnAmt()) {
+                        addStatusMessage(SALE_AMT);
+                        addStatusMessage('INITIATING VALIDATION TRANSACTION');
+                        // String DATA_ASCII =
+                        //     '7001,1030,SALE,100,15489,1099,,,,,E748A37A-B0D0-4EAC-9DD4-9722E544D296,https://plcloudservicesuat.com/api/CloudBasedIntegration/V1/PerformTxnValidation';
+                        String DATA_ASCII =
+                        '$TR_TYPE,1030,SALE,$SALE_AMT,,1190,,,$BILLING_REF,,E748A37A-B0D0-4EAC-9DD4-9722E544D296,https://plcloudservicesuat.com/api/CloudBasedIntegration/V1/PerformTxnValidation';
+                        logger.logSuccess('INITIATING TXN');
+                        addStatusMessage('INITIATING TXN');
+                        DATA = convertToHex(DATA_ASCII);
+                        String payloadLength = (decimalToHexWithLeadingZeros(
+                            DATA_ASCII.length, 4));
+                        logger.logSuccess(payloadLength);
+                        DATA_LENGTH = payloadLength.toString().toUpperCase();
+                        final dataElement = (IDENTIFICATIN_NO +
+                            FUNCTION_CODE +
+                            DATA_LENGTH +
+                            DATA +
+                            EOT)
+                            .toUpperCase();
+                        logger.logSuccess(dataElement);
+                        var datapayment = await POSManager.performApiCall(
+                            dataElement, TXN_TYPE);
+                        addStatusMessage(hexToAscii(datapayment.toString()));
+                        logger.logSuccess(datapayment.toString());
+                      }else {
+                        logger.error('Enter Transaction Amount');
+                        SnackBarUtil.showCustomSnackBar(
+                            context, 'Enter Transaction Amount');
+                      }
                       break;
                     default:
                       TR_TYPE = '';
                   }
-                } else {
-                  logger.logSuccess('FUNCTION NOT IMPLEMENTED');
-                  addStatusMessage('FUNCTION NOT IMPLEMENTED');
                 }
               },
               child: Container(
