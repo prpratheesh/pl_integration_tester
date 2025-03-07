@@ -84,6 +84,19 @@ class MainActivity : FlutterActivity() {
                                 )
                             }
                         }
+                        "performApiCall" -> {
+                            val paymentRequest = call.argument<String>("paymentRequest")
+                            val transactionType = call.argument<Int>("transactionType")
+                            if (paymentRequest != null && transactionType != null) {
+                                performApiCall(paymentRequest, transactionType, result)
+                            } else {
+                                result.error(
+                                    "INVALID_ARGUMENTS",
+                                    "Payment Request and Transaction Type must not be null",
+                                    null
+                                )
+                            }
+                        }
                         "scanBTDevice" -> {
                             scanBTDevice(result)
                         }
@@ -355,25 +368,114 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun doTransaction(paymentRequest: String, transactionType: Int, result: MethodChannel.Result) {
+        Log.d(TAG, "doTransaction called with paymentRequest: $paymentRequest, transactionType: $transactionType")
+
         Handler(Looper.getMainLooper()).postDelayed({
+            Log.d(TAG, "doTransaction: postDelayed executing after 100ms")
             val executor = Executors.newSingleThreadExecutor()
             executor.execute {
-                PosLibManager.getInstance().doTransaction(this, paymentRequest, transactionType, object : TransactionListener {
-                    override fun onSuccess(paymentResponse: String) {
-                        runOnUiThread {
-                            result.success(paymentResponse)
+                Log.d(TAG, "doTransaction: executor executing doTransaction on background thread")
+                try {
+                    PosLibManager.getInstance().doTransaction(this, paymentRequest, transactionType, object : TransactionListener {
+                        override fun onSuccess(paymentResponse: String) {
+                            Log.d(TAG, "doTransaction: onSuccess called with paymentResponse: $paymentResponse")
+                            runOnUiThread {
+                                Log.d(TAG, "doTransaction: onSuccess runOnUiThread executing")
+                                try {
+                                    result.success(paymentResponse)
+                                    Log.d(TAG, "doTransaction: onSuccess result.success called")
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "doTransaction: onSuccess exception setting result: ${e.message}", e)
+                                }
+
+                            }
                         }
+
+                        override fun onFailure(errorMsg: String, errorCode: Int) {
+                            Log.e(TAG, "doTransaction: onFailure called with errorMsg: $errorMsg, errorCode: $errorCode")
+                            runOnUiThread {
+                                Log.d(TAG, "doTransaction: onFailure runOnUiThread executing")
+                                try{
+                                    result.error("TRANSACTION_FAILURE", errorMsg, errorCode)
+                                    Log.d(TAG, "doTransaction: onFailure result.error called")
+                                } catch (e: Exception){
+                                    Log.e(TAG, "doTransaction: onFailure exception setting result: ${e.message}", e)
+                                }
+
+                            }
+                        }
+                    })
+                } catch (e: Exception) {
+                    Log.e(TAG, "doTransaction: Exception in doTransaction execution: ${e.message}", e)
+                    runOnUiThread{
+                        result.error("TRANSACTION_EXECUTION_ERROR", "Exception in doTransaction execution: ${e.message}", null)
                     }
 
-                    override fun onFailure(errorMsg: String, errorCode: Int) {
-                        runOnUiThread {
-                            result.error("TRANSACTION_FAILURE", errorMsg, errorCode)
-                        }
-                    }
-                })
-                executor.shutdown()
+                } finally {
+                    Log.d(TAG, "doTransaction: executor shutdown")
+                    executor.shutdown()
+                }
+
             }
         }, 100)
+    }
+
+    private fun performApiCall(paymentRequest: String, transactionType: Int, result: MethodChannel.Result) {
+        Log.d(TAG, "performApiCall called with paymentRequest: $paymentRequest, transactionType: $transactionType")
+
+        // Use the application context instead of 'this'
+        val context = applicationContext
+
+        // Call the doTransaction method of your SDK
+        Handler(Looper.getMainLooper()).postDelayed({
+            Log.d(TAG, "performApiCall: postDelayed executing after 100ms")
+            val executor = Executors.newSingleThreadExecutor()
+            executor.execute {
+                Log.d(TAG, "performApiCall: executor executing doTransaction on background thread")
+                try {
+                    PosLibManager.getInstance().doTransaction(
+                        context, // Pass the correct context
+                        paymentRequest,
+                        transactionType,
+                        object : TransactionListener {
+                            override fun onSuccess(paymentResponse: String) {
+                                Log.d(TAG, "performApiCall: onSuccess called with paymentResponse: $paymentResponse")
+                                runOnUiThread {
+                                    Log.d(TAG, "performApiCall: onSuccess runOnUiThread executing")
+                                    try {
+                                        result.success(paymentResponse)
+                                        Log.d(TAG, "performApiCall: onSuccess result.success called")
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "performApiCall: onSuccess exception setting result: ${e.message}", e)
+                                    }
+                                }
+                            }
+
+                            override fun onFailure(errorMsg: String, errorCode: Int) {
+                                Log.e(TAG, "performApiCall: onFailure called with errorMsg: $errorMsg, errorCode: $errorCode")
+                                runOnUiThread {
+                                    Log.d(TAG, "performApiCall: onFailure runOnUiThread executing")
+                                    try {
+                                        result.error("API_CALL_FAILURE", errorMsg, errorCode)
+                                        Log.d(TAG, "performApiCall: onFailure result.error called")
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "performApiCall: onFailure exception setting result: ${e.message}", e)
+                                    }
+                                }
+                            }
+                        }
+                    )
+                } catch (e: Exception) {
+                    Log.e(TAG, "performApiCall: Exception in doTransaction execution: ${e.message}", e)
+                    runOnUiThread {
+                        result.error("API_CALL_FAILURE", "Exception in doTransaction execution: ${e.message}", null)
+                    }
+                } finally {
+                    Log.d(TAG, "performApiCall: executor shutdown")
+                    executor.shutdown()
+                }
+            }
+        }, 5000)
     }
 }
 
