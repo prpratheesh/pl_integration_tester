@@ -475,7 +475,7 @@ class MainActivity : FlutterActivity() {
                     executor.shutdown()
                 }
             }
-        }, 5000)
+        }, 1)
     }
 }
 

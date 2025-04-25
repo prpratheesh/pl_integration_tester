@@ -739,14 +739,16 @@ class _State extends State<TerminalFunctions> with TickerProviderStateMixin{
                         addStatusMessage('INITIATING VALIDATION TRANSACTION');
                         // String DATA_ASCII =
                         //     '7001,1030,SALE,100,15489,1099,,,,,E748A37A-B0D0-4EAC-9DD4-9722E544D296,https://plcloudservicesuat.com/api/CloudBasedIntegration/V1/PerformTxnValidation';
-                        String DATA_ASCII =
-                        '$TR_TYPE,1030,SALE,$SALE_AMT,,1190,,,$BILLING_REF,,E748A37A-B0D0-4EAC-9DD4-9722E544D296,https://plcloudservicesuat.com/api/CloudBasedIntegration/V1/PerformTxnValidation';
+                        String DATA_ASCII = '7001,1329,SALE,$SALE_AMT,,,,,$BILLING_REF,,E748A37A-B0D0-4EAC-9DD4-9722E544D296,https://plcloudservicesuat.com/api/CloudBasedIntegration/V1/PerformTxnValidation';
+                        // String DATA_ASCII2 = '7001,1033,SALE,1417,,,,,1459,,CD808B89-B22F-434D-9FBE-C860D89BFECA,https://plcloudservicesuat.com/api/CloudBasedIntegration/V1/PerformTxnValidation';
                         logger.logSuccess('INITIATING TXN');
+                        logger.logSuccess('FRAMED DATA -> $DATA_ASCII');
                         addStatusMessage('INITIATING TXN');
                         DATA = convertToHex(DATA_ASCII);
+                        logger.logSuccess('HEX CONVERTED DATA -> $DATA');
                         String payloadLength = (decimalToHexWithLeadingZeros(
                             DATA_ASCII.length, 4));
-                        logger.logSuccess(payloadLength);
+                        logger.logSuccess('PAYLOAD LENGTH -> $payloadLength');
                         DATA_LENGTH = payloadLength.toString().toUpperCase();
                         final dataElement = (IDENTIFICATIN_NO +
                             FUNCTION_CODE +
@@ -754,11 +756,13 @@ class _State extends State<TerminalFunctions> with TickerProviderStateMixin{
                             DATA +
                             EOT)
                             .toUpperCase();
-                        logger.logSuccess(dataElement);
-                        var datapayment = await POSManager.performApiCall(
-                            dataElement, TXN_TYPE);
+                        // final dataElement2 = '100009970098373030312C313033332C53414C452C3338342C2C2C2C2C543134373954313635372C2C43443830384238392D423232462D343334442D394642452D4338363044383942464543412C68747470733A2F2F706C636C6F756473657276696365737561742E636F6D2F6170692F436C6F75644261736564496E746567726174696F6E2F56312F506572666F726D54786E56616C69646174696F6EFF';
+                        // final dataElement3 = '100009970091373030312C313033302C53414C452C3434342C2C2C2C2C3434342C2C45373438413337412D423044302D344541432D394444342D3937323245353434443239362C68747470733A2F2F706C636C6F756473657276696365737561742E636F6D2F6170692F436C6F75644261736564496E746567726174696F6E2F56312F506572666F726D54786E56616C69646174696F6EFF';
+                        logger.logSuccess('FINAL PAYLOAD -> $dataElement');
+                        // var datapayment = await POSManager.performApiCall(dataElement, TXN_TYPE);
+                        var datapayment = await POSManager.doTransaction(dataElement, TXN_TYPE);
+                        logger.logSuccess('RESPONSE -> $datapayment');
                         addStatusMessage(hexToAscii(datapayment.toString()));
-                        logger.logSuccess(datapayment.toString());
                       }else {
                         logger.error('Enter Transaction Amount');
                         SnackBarUtil.showCustomSnackBar(
